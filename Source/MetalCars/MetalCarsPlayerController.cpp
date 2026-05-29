@@ -6,14 +6,17 @@
 #include "MetalCarsUI.h"
 #include "EnhancedInputSubsystems.h"
 #include "ChaosWheeledVehicleMovementComponent.h"
+#include "EnhancedInputComponent.h"
 #include "Blueprint/UserWidget.h"
 #include "MetalCars.h"
+#include "MetalCarsGameState.h"
 #include "MetalCarsPlayerState.h"
 #include "Actors/Projectiles/MetalProjectile.h"
 #include "Components/MetalHealthComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerStart.h"
 #include "MetalCar/Cars/MetalCombatVehicle.h"
+#include "Widgets/MetalScoreboardWidget.h"
 #include "Widgets/Input/SVirtualJoystick.h"
 
 void AMetalCarsPlayerController::AcknowledgePossession(APawn* InPawn)
@@ -94,6 +97,32 @@ void AMetalCarsPlayerController::SetupInputComponent()
 			}
 		}
 	}
+	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent))
+	{
+		if (ScoreboardAction)
+		{
+			EnhancedInputComponent->BindAction(
+				ScoreboardAction,
+				ETriggerEvent::Started,
+				this,
+				&AMetalCarsPlayerController::StartShowScoreboard
+			);
+
+			EnhancedInputComponent->BindAction(
+				ScoreboardAction,
+				ETriggerEvent::Completed,
+				this,
+				&AMetalCarsPlayerController::StopShowScoreboard
+			);
+
+			EnhancedInputComponent->BindAction(
+				ScoreboardAction,
+				ETriggerEvent::Canceled,
+				this,
+				&AMetalCarsPlayerController::StopShowScoreboard
+			);
+		}
+	}
 }
 
 void AMetalCarsPlayerController::Tick(float Delta)
@@ -155,6 +184,15 @@ void AMetalCarsPlayerController::Tick(float Delta)
 				MetalPS->GetCombatScore()
 			);
 		}
+		if (AMetalCarsGameState* MetalGS = GetWorld() ? GetWorld()->GetGameState<AMetalCarsGameState>() : nullptr)
+		{
+			VehicleUI->UpdateMatchTime(MetalGS->GetTimeRemaining());
+
+			VehicleUI->UpdateMatchResult(
+				MetalGS->IsMatchFinished(),
+				MetalGS->GetWinnerName()
+			);
+		}
 	}
 }
 
@@ -193,4 +231,48 @@ bool AMetalCarsPlayerController::ShouldUseTouchControls() const
 {
 	// are we on a mobile platform? Should we force touch?
 	return SVirtualJoystick::ShouldDisplayTouchInterface() || bForceTouchControls;
+}
+
+
+void AMetalCarsPlayerController::StartShowScoreboard(const FInputActionValue& Value)
+{
+	ShowScoreboard();
+}
+
+void AMetalCarsPlayerController::StopShowScoreboard(const FInputActionValue& Value)
+{
+	HideScoreboard();
+}
+
+void AMetalCarsPlayerController::ShowScoreboard()
+{
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+
+	if (!ScoreboardWidget && ScoreboardWidgetClass)
+	{
+		ScoreboardWidget = CreateWidget<UMetalScoreboardWidget>(this, ScoreboardWidgetClass);
+	}
+
+	if (!ScoreboardWidget)
+	{
+		return;
+	}
+
+	ScoreboardWidget->RefreshScoreboard();
+
+	if (!ScoreboardWidget->IsInViewport())
+	{
+		ScoreboardWidget->AddToViewport(50);
+	}
+}
+
+void AMetalCarsPlayerController::HideScoreboard()
+{
+	if (ScoreboardWidget && ScoreboardWidget->IsInViewport())
+	{
+		ScoreboardWidget->RemoveFromParent();
+	}
 }

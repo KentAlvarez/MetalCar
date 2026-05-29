@@ -39,3 +39,8 @@ void UMetalCarsUI::UpdateMatchTime(float TimeRemaining)
 {
 	OnMatchTimeUpdate(TimeRemaining);
 }
+
+void UMetalCarsUI::UpdateMatchResult(bool bMatchFinished, const FString& WinnerName)
+{
+	OnMatchResultUpdate(bMatchFinished, WinnerName);
+}

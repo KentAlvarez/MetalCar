@@ -38,6 +38,10 @@ public:
 
 	void UpdateMatchTime(float TimeRemaining);
 
+	UFUNCTION(BlueprintCallable, Category="HUD|Match")
+	void UpdateMatchResult(bool bMatchFinished, const FString& WinnerName);
+
+
 protected:
 
 	/** Implemented in Blueprint to display the new speed */
@@ -59,4 +63,7 @@ protected:
 
 	UFUNCTION(BlueprintImplementableEvent, Category="Vehicle")
 	void OnMatchTimeUpdate(float TimeRemaining);
+
+	UFUNCTION(BlueprintImplementableEvent, Category="HUD|Match")
+	void OnMatchResultUpdate(bool bMatchFinished, const FString& WinnerName);
 };

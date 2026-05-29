@@ -6,9 +6,12 @@
 #include "GameFramework/PlayerController.h"
 #include "MetalCarsPlayerController.generated.h"
 
+struct FInputActionValue;
 class UInputMappingContext;
 class AMetalCarsPawn;
 class UMetalCarsUI;
+class UMetalScoreboardWidget;
+class UInputAction;
 
 /**
  *  Vehicle Player Controller class
@@ -92,4 +95,20 @@ protected:
 
 	/** Returns true if the player should use UMG touch controls */
 	bool ShouldUseTouchControls() const;
+//---------------ScoreUI------------------------------
+public:
+	UPROPERTY(EditAnywhere, Category="Vehicle|UI")
+	TSubclassOf<UMetalScoreboardWidget> ScoreboardWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<UMetalScoreboardWidget> ScoreboardWidget;
+
+	UPROPERTY(EditAnywhere, Category="Input")
+	UInputAction* ScoreboardAction;
+
+	void StartShowScoreboard(const FInputActionValue& Value);
+	void StopShowScoreboard(const FInputActionValue& Value);
+
+	void ShowScoreboard();
+	void HideScoreboard();
 };
