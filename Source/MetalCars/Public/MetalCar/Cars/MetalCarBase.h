@@ -23,8 +23,10 @@ public:
 	float CurrentBrakeInput = 0.0f;
 
 protected:
-
 	
+
+	UFUNCTION(BlueprintPure, Category = "Ground Check")
+	bool CanUseArcadeGroundControl() const;
 	
 	/** Aceleracion arcade en kilometros por hora por segundo */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Arcade Vehicle|Motor", meta = (ClampMin = "0.0", DisplayName = "Aceleracion Km/h por segundo"))
@@ -89,7 +91,6 @@ protected:
 private:
 
 	void ApplyArcadeVehicleSetup();
-	bool CanUseArcadeGroundControl() const;
 	void ApplyArcadeSteering(float Delta);
 	void ApplyArcadeDrive(float Delta);
 	void UpdateWheelVisuals(float Delta);
