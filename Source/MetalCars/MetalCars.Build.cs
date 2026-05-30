@@ -17,7 +17,8 @@ public class MetalCars : ModuleRules
 			"ChaosVehicles",
 			"PhysicsCore",
 			"UMG",
-			"Slate"
+			"Slate",
+			"Niagara"
 		});
 
 		PublicIncludePaths.AddRange(new string[] {
@@ -29,7 +30,7 @@ public class MetalCars : ModuleRules
 			"MetalCars/Variant_TimeTrial/UI"
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { });
+		PrivateDependencyModuleNames.AddRange(new string[] { "Niagara" });
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

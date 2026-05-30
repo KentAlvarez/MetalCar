@@ -39,10 +39,14 @@ void AMetalCombatVehicle::BeginPlay()
 		HealthComponent->OnDeath.AddDynamic(this, &AMetalCombatVehicle::HandleDeath);
 	}
 
-	UpdateDamageStateFromHealth();
+	// Estado visual inicial.
+	DamageState = EVehicleDamageState::Healthy;
+	BP_OnDamageStateChanged(DamageState);
 
+	// El server calcula y replica cambios reales.
 	if (HasAuthority())
 	{
+		UpdateDamageStateFromHealth();
 		AddMissileAmmo(TestMissileClass, 5);
 	}
 	
@@ -153,12 +157,7 @@ EVehicleDamageState AMetalCombatVehicle::CalculateDamageState() const
 		return EVehicleDamageState::Destroyed;
 	}
 
-	if (HealthPercent <= 0.10f)
-	{
-		return EVehicleDamageState::CriticalDamage;
-	}
-
-	if (HealthPercent <= 0.40f)
+	if (HealthPercent <= 0.30f)
 	{
 		return EVehicleDamageState::HeavyDamage;
 	}
@@ -180,7 +179,6 @@ void AMetalCombatVehicle::SetDamageState(EVehicleDamageState NewDamageState)
 
 	DamageState = NewDamageState;
 
-	// En el server OnRep no se ejecuta solo, así que llamamos manual.
 	BP_OnDamageStateChanged(DamageState);
 }
 

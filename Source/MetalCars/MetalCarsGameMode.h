@@ -54,6 +54,25 @@ protected:
 	float SpawnCheckRadius = 600.0f;
 
 	bool IsSpawnPointSafe(AActor* SpawnPoint) const;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Vehicle Random Spawn")
+	TArray<TSubclassOf<APawn>> RandomVehicleClasses;
+
+	UPROPERTY()
+	TArray<int32> VehicleBag;
+
+	int32 LastPickedVehicleIndex = INDEX_NONE;
+
+	virtual UClass* GetDefaultPawnClassForController_Implementation(AController* InController) override;
+
+	void RefillVehicleBag();
+
+	TSubclassOf<APawn> GetRandomVehicleClassFromBag();
+	
+	TMap<TWeakObjectPtr<AController>, TSubclassOf<APawn>> AssignedVehicleClasses;
+
+	virtual void HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer) override;
+	void AssignRandomVehicleToController(AController* Controller);
 };
 
 

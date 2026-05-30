@@ -88,6 +88,15 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Arcade Vehicle|Wheel Visuals")
 	void OnWheelVisualsUpdated(float WheelSpinDegrees, float SteeringAngle);
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Arcade Drive")
+	float MaxReverseSpeedKmh = 45.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Arcade Drive")
+	float ReverseAccelerationKmhPerSecond = 80.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Arcade Drive")
+	float ReverseStartSpeedKmh = 8.0f;
+
 private:
 
 	void ApplyArcadeVehicleSetup();

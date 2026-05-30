@@ -259,3 +259,122 @@ bool AMetalCarsGameMode::IsSpawnPointSafe(AActor* SpawnPoint) const
 
 	return !bHasOverlap;
 }
+
+UClass* AMetalCarsGameMode::GetDefaultPawnClassForController_Implementation(AController* InController)
+{
+	if (InController)
+	{
+		if (TSubclassOf<APawn>* AssignedClass = AssignedVehicleClasses.Find(InController))
+		{
+			if (*AssignedClass)
+			{
+				return *AssignedClass;
+			}
+		}
+	}
+
+	return Super::GetDefaultPawnClassForController_Implementation(InController);
+}
+
+void AMetalCarsGameMode::RefillVehicleBag()
+{
+	VehicleBag.Empty();
+
+	for (int32 i = 0; i < RandomVehicleClasses.Num(); i++)
+	{
+		if (RandomVehicleClasses[i])
+		{
+			VehicleBag.Add(i);
+		}
+	}
+
+	// Shuffle
+	for (int32 i = 0; i < VehicleBag.Num(); i++)
+	{
+		const int32 RandomIndex = FMath::RandRange(i, VehicleBag.Num() - 1);
+		VehicleBag.Swap(i, RandomIndex);
+	}
+
+	// Evita repetir justo entre el último de la bolsa anterior
+	// y el primero de la nueva tanda.
+	if (VehicleBag.Num() > 1 && VehicleBag.Last() == LastPickedVehicleIndex)
+	{
+		for (int32 i = 0; i < VehicleBag.Num(); i++)
+		{
+			if (VehicleBag[i] != LastPickedVehicleIndex)
+			{
+				VehicleBag.Swap(i, VehicleBag.Num() - 1);
+				break;
+			}
+		}
+	}
+}
+
+TSubclassOf<APawn> AMetalCarsGameMode::GetRandomVehicleClassFromBag()
+{
+	if (RandomVehicleClasses.Num() <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("RandomVehicleClasses esta vacio."));
+		return nullptr;
+	}
+
+	if (VehicleBag.Num() <= 0)
+	{
+		RefillVehicleBag();
+	}
+
+	if (VehicleBag.Num() <= 0)
+	{
+		return nullptr;
+	}
+
+	const int32 PickedIndex = VehicleBag.Pop();
+	LastPickedVehicleIndex = PickedIndex;
+
+	if (!RandomVehicleClasses.IsValidIndex(PickedIndex))
+	{
+		return nullptr;
+	}
+
+	return RandomVehicleClasses[PickedIndex];
+}
+
+void AMetalCarsGameMode::HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer)
+{
+	// IMPORTANTE:
+	// Asignamos el auto antes de que GameMode haga el primer spawn.
+	AssignRandomVehicleToController(NewPlayer);
+
+	Super::HandleStartingNewPlayer_Implementation(NewPlayer);
+}
+
+
+void AMetalCarsGameMode::AssignRandomVehicleToController(AController* Controller)
+{
+	if (!Controller)
+	{
+		return;
+	}
+
+	// Si ya tiene auto asignado, no lo cambiamos.
+	// Esto hace que el respawn conserve el mismo vehículo.
+	if (AssignedVehicleClasses.Contains(Controller))
+	{
+		return;
+	}
+
+	TSubclassOf<APawn> RandomVehicleClass = GetRandomVehicleClassFromBag();
+
+	if (!RandomVehicleClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No hay RandomVehicleClass valida. Se usara DefaultPawnClass."));
+		return;
+	}
+
+	AssignedVehicleClasses.Add(Controller, RandomVehicleClass);
+
+	UE_LOG(LogTemp, Warning, TEXT("Auto asignado a %s: %s"),
+		*GetNameSafe(Controller),
+		*GetNameSafe(RandomVehicleClass.Get()));
+}
+

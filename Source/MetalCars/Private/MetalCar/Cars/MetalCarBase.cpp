@@ -213,26 +213,80 @@ void AMetalCarBase::ApplyArcadeSteering(float Delta)
 
 void AMetalCarBase::ApplyArcadeDrive(float Delta)
 {
-	if (!GetMesh() || !CanUseArcadeGroundControl())
+	if (!CanUseArcadeGroundControl())
 	{
 		return;
 	}
 
-	FVector CurrentVelocity = GetMesh()->GetPhysicsLinearVelocity();
-	FVector HorizontalVelocity(CurrentVelocity.X, CurrentVelocity.Y, 0.0f);
+	UPrimitiveComponent* PrimitiveRoot = Cast<UPrimitiveComponent>(GetRootComponent());
 
-	const FVector ForwardDirection = GetActorForwardVector().GetSafeNormal2D();
-	const float AccelerationCmS2 = AccelerationKmhPerSecond * 100000.0f / 3600.0f;
-	HorizontalVelocity += ForwardDirection * CurrentThrottleInput * AccelerationCmS2 * Delta;
-
-	if (CurrentBrakeInput > 0.0f)
+	if (!PrimitiveRoot || !PrimitiveRoot->IsSimulatingPhysics())
 	{
-		const float BrakeCmS2 = BrakeKmhPerSecond * 100000.0f / 3600.0f;
-		const float NewSpeed = FMath::Max(0.0f, HorizontalVelocity.Size() - BrakeCmS2 * CurrentBrakeInput * Delta);
-		HorizontalVelocity = HorizontalVelocity.GetSafeNormal() * NewSpeed;
+		return;
 	}
 
-	GetMesh()->SetPhysicsLinearVelocity(FVector(HorizontalVelocity.X, HorizontalVelocity.Y, CurrentVelocity.Z));
+	FVector Velocity = PrimitiveRoot->GetPhysicsLinearVelocity();
+
+	const FVector Forward = GetActorForwardVector();
+	const FVector HorizontalVelocity = FVector(Velocity.X, Velocity.Y, 0.0f);
+
+	const float ForwardSpeedCms = FVector::DotProduct(HorizontalVelocity, Forward);
+	const float ForwardSpeedKmh = ForwardSpeedCms * 0.036f;
+
+	const float MaxSpeedCms = MaxSpeedKmh / 0.036f;
+	const float MaxReverseSpeedCms = MaxReverseSpeedKmh / 0.036f;
+
+	const float AccelerationCms = AccelerationKmhPerSecond / 0.036f;
+	const float BrakeCms = BrakeKmhPerSecond / 0.036f;
+	const float ReverseAccelerationCms = ReverseAccelerationKmhPerSecond / 0.036f;
+
+	FVector NewVelocity = Velocity;
+
+	// -------------------------
+	// Acelerar hacia adelante
+	// -------------------------
+	if (CurrentThrottleInput > 0.0f)
+	{
+		NewVelocity += Forward * AccelerationCms * CurrentThrottleInput * Delta;
+	}
+
+	// -------------------------
+	// Freno / marcha atrás
+	// -------------------------
+	if (CurrentBrakeInput > 0.0f)
+	{
+		// Si todavía vamos hacia adelante, primero frena.
+		if (ForwardSpeedKmh > ReverseStartSpeedKmh)
+		{
+			NewVelocity -= Forward * BrakeCms * CurrentBrakeInput * Delta;
+		}
+		else
+		{
+			// Si ya estamos casi parados, empieza a ir marcha atrás.
+			NewVelocity -= Forward * ReverseAccelerationCms * CurrentBrakeInput * Delta;
+		}
+	}
+
+	// -------------------------
+	// Limitar velocidad adelante / atrás
+	// -------------------------
+	FVector NewHorizontalVelocity = FVector(NewVelocity.X, NewVelocity.Y, 0.0f);
+	const float NewForwardSpeedCms = FVector::DotProduct(NewHorizontalVelocity, Forward);
+
+	if (NewForwardSpeedCms > MaxSpeedCms)
+	{
+		NewHorizontalVelocity = Forward * MaxSpeedCms;
+		NewVelocity.X = NewHorizontalVelocity.X;
+		NewVelocity.Y = NewHorizontalVelocity.Y;
+	}
+	else if (NewForwardSpeedCms < -MaxReverseSpeedCms)
+	{
+		NewHorizontalVelocity = -Forward * MaxReverseSpeedCms;
+		NewVelocity.X = NewHorizontalVelocity.X;
+		NewVelocity.Y = NewHorizontalVelocity.Y;
+	}
+
+	PrimitiveRoot->SetPhysicsLinearVelocity(NewVelocity);
 }
 
 void AMetalCarBase::UpdateWheelVisuals(float Delta)
